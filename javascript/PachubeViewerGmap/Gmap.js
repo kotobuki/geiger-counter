@@ -1,3 +1,18 @@
+
+$(document).ready(function()
+{
+	$('#gmcounter-viewer').visualizeGmCounter(
+	{
+		apiURI:[
+			'http://api.pachube.com/v2/feeds/20337.json',	// mayfair
+			'http://api.pachube.com/v2/feeds/397.json'		// miyasita
+		]
+		// visualizer: new GmVisualizer()
+	});
+});
+
+
+
 /**
  *	
  *	plugin for jQuery - visualizeGmCounter
@@ -15,9 +30,9 @@
  *		+ Circleの色の決定方法を決める。 サイズに意味は無いのはどうしよう（データ観測地の数にもよるかも。今試してたら30000位がちょうど良いように思った）
  *		+ Balloon内の見せ方、currentValue/Max の横棒グラフなんかを付ける？
  */
-(function(){
-	
-	jQuery.fn.visualizeGmCounter = function(config)
+(function($){
+
+	$.fn.visualizeGmCounter = function(config)
 	{
 		/**
 		 *	$(elem).visualizeGmCounter() の設定
@@ -33,16 +48,16 @@
 		 *			+ Forkする際には、このGmVisualizerを編集したり、 別のvisualizerを渡したりすると便利（かもしれません）。
 		 *	
 		 */
-		config = jQuery.extend(
+		config = $.extend(
 		{
 			apiURI:[],
 			visualizer: undefined
 		}, config);
-		
+
 		var target = this;
-		
-		
-		
+
+
+
 		/**
 		 *	Class GmDataParser
 		 *	========================================================
@@ -59,7 +74,7 @@
 			 *		+ Pachubeから取得したデータ全てを配列で格納。 Visualizerの draw() の引数に渡されます。
 			 */
 			aData: [],
-			
+
 			/**
 			 *	{Function}	getData
 			 *		+ visualizeGmCounter定義冒頭の config.apiURI 全てのURIからデータを取得します。
@@ -107,9 +122,9 @@
 				};
 			}
 		};
-		
-		
-		
+
+
+
 		/**
 		 *	Class GmVisualizer
 		 *	========================================================
@@ -172,7 +187,7 @@
 			{
 				var elBalloon = this.elBalloon;
 				var oGMap = this.oGMap;
-				
+
 				for(var i=0; i < aData.length; i++)
 				{
 					var oJson = aData[i];
@@ -180,7 +195,7 @@
 					{
 						continue;
 					};
-					
+
 					/**
 					 *	地図上にOverlayを置く時に使用する緯度経度
 					 */
@@ -251,7 +266,7 @@
 				// console.log("[min_value] "+ oJson.datastreams[0].min_value);
 				// console.log("------------");
 				// -------------------------------------
-							
+
 				oJson.feed.match(/\/(\d+)\.json$/);
 				var elTitle = $(
 					'<h2 class="title"><span>情報提供元: </span><a href="http://www.pachube.com/feeds/'+RegExp.$1
@@ -272,16 +287,16 @@
 				elBalloon.append(elCurrentValue);
 				elBalloon.append(elAt);
 				elBalloon.append(elDescription);
-				
+
 				sNewString = elBalloon.html();
 				elBalloon = null;
 				return sNewString;
 			}
 		};
-		
-		
-		
-		
+
+
+
+
 		/**
 		 *	実行
 		 *	========================================================
@@ -293,6 +308,3 @@
 		(new GmDataParser()).getData();
 	}
 })(jQuery);
-
-
-

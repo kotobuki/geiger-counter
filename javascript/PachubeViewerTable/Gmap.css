@@ -6,11 +6,7 @@
 	margin:0;
 	padding:0;
 }
-html,
-body,
-#gmcounter-viewer{
-	height:100%;
-}
+
 
 
 
@@ -19,6 +15,14 @@ body,
  *
  */
 #gmcounter-viewer{
+	border:3px solid #ccc;
+	border-radius:5px;
+	-moz-border-radius:5px;
+	-webkit-border-radius:5px;
+	width:500px;
+	height:450px;
+	
+	margin:50px;
 }
 #gmcounter-viewer div{
 	font-size:12px;
