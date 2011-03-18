@@ -1,13 +1,16 @@
 
+/**
+ *	実行
+ *	========================================================
+ */
 $(document).ready(function()
 {
 	$('#gmcounter-viewer').visualizeGmCounter(
 	{
-		apiURI:[
-			'http://api.pachube.com/v2/feeds/20337.json',	// mayfair
-			'http://api.pachube.com/v2/feeds/397.json'		// miyasita
+		pachubeAPI:[
+			'http://api.pachube.com/v2/feeds.json?tag=sensor:type=radiation&lat=35&lon=139&distance=2000'
 		]
-		// visualizer: new GmVisualizer()
+		// visualizer: new GmcVisualizer()
 	});
 });
 
@@ -26,9 +29,8 @@ $(document).ready(function()
  *			+ 実行
  *	
  *	@todo
- *		+ 各jsonによってmin/max値が違うけど単純にcurrent_valueを出してればいいのかな...?
- *		+ Circleの色の決定方法を決める。 サイズに意味は無いのはどうしよう（データ観測地の数にもよるかも。今試してたら30000位がちょうど良いように思った）
- *		+ Balloon内の見せ方、currentValue/Max の横棒グラフなんかを付ける？
+ *		+ 今回のケースに合った、良いVisualize方法を探す
+ *		
  */
 (function($){
 
@@ -38,19 +40,19 @@ $(document).ready(function()
 		 *	$(elem).visualizeGmCounter() の設定
 		 *	========================================================
 		 *
-		 *		{Array}		apiURI
+		 *		{Array}		pachubeAPI
 		 *			+ 取得したいPachube APIのURI (json) を配列で格納します。
 		 *
 		 *		{Object}	visualizer
 		 *			+ Pachubeから取得したデータを使ってVisualizeするClassのインスタンスです。
-		 *			+ 何も指定しない場合は、このコード内の Class GmVisualizer が使用されます。
+		 *			+ 何も指定しない場合は、このコード内の Class GmcVisualizer が使用されます。
 		 *			+ Pachubeからのデータ取得が終わると、 取得した全Jsonの配列を引数としてvisualizerインスタンスの draw メソッドが呼び出されます。
-		 *			+ Forkする際には、このGmVisualizerを編集したり、 別のvisualizerを渡したりすると便利（かもしれません）。
+		 *			+ Forkする際には、このGmcVisualizerを編集したり、 別のvisualizerを渡したりすると便利（かもしれません）。
 		 *	
 		 */
 		config = $.extend(
 		{
-			apiURI:[],
+			pachubeAPI:[],
 			visualizer: undefined
 		}, config);
 
@@ -59,43 +61,46 @@ $(document).ready(function()
 
 
 		/**
-		 *	Class GmDataParser
+		 *	Class GmcDataParser
 		 *	========================================================
 		 *	
 		 *		@use
 		 *			+ Pachubeからデータを取得して、visualizerに渡します。
 		 *			
 		 */
-		var GmDataParser = function(){};
-		GmDataParser.prototype =
+		var GmcDataParser = function(){};
+		GmcDataParser.prototype =
 		{
 			/**
 			 *	{Array}	aData
-			 *		+ Pachubeから取得したデータ全てを配列で格納。 Visualizerの draw() の引数に渡されます。
+			 *		+ Pachubeから取得したデータ全てを配列で格納します。
+			 *		+ 中に入るデータは, www.pachube.com/feeds/{Feed ID}.json で得られる形式のJSONです。
+			 *		+ このデータは、Visualizerの draw() の引数に渡されます。
 			 */
 			aData: [],
 
 			/**
 			 *	{Function}	getData
-			 *		+ visualizeGmCounter定義冒頭の config.apiURI 全てのURIからデータを取得します。
+			 *		+ visualizeGmCounter定義冒頭の config.pachubeAPI 全てのURIからデータを取得します。
 			 *		+ 全てのURIからデータを貰った時点で, config.visualizer.draw に this.data を渡して実行します。
 			 */
 			getData: function()
 			{
 				var aData = this.aData;
-				for(var i=0; i<config.apiURI.length; i++)
+				for(var i=0; i<config.pachubeAPI.length; i++)
 				{
 					$.ajax(
 					{
-						url: config.apiURI[i],
+						url: config.pachubeAPI[i],
 						dataType : 'jsonp',
 						jsonp:'callback',
 						timeout: 5000,
 						data: "timezone=+9",
 				    	success: function(oJson)
 						{
-							aData.push(oJson);
-							if(aData.length == config.apiURI.length)
+							aData = aData.concat(oJson.results);
+							
+							if(i == config.pachubeAPI.length)
 							{
 								if (config.visualizer.draw)
 								{
@@ -109,13 +114,13 @@ $(document).ready(function()
 				    	},
 				    	error: function(e)
 						{
-							console.log(e);
+							alert(e);
 						},
 						statusCode:
 						{
 							404: function()
 							{
-								console.log('invalid API URL...');
+								alert('invalid API URL...');
   							}
 						}
 					});
@@ -126,7 +131,7 @@ $(document).ready(function()
 
 
 		/**
-		 *	Class GmVisualizer
+		 *	Class GmcVisualizer
 		 *	========================================================
 		 *	
 		 *		@use
@@ -134,24 +139,24 @@ $(document).ready(function()
 		 *			+ JSON形式のデータのみ受け付けます。
 		 *		
 		 */
-		var GmVisualizer = function(){};
-		GmVisualizer.prototype = 
+		var GmcVisualizer = function(){};
+		GmcVisualizer.prototype = 
 		{
 			/**
 			 *	{Object}	oGMap		google.maps.Mapへの参照
-			 *	{Array}		aInfoWindow	google.maps.InfoWindow の配列
+			 *	{Array}		aGInfoWindows	google.maps.InfoWindow の配列
 			 */
 			oGMap: undefined,
-			aInfoWindow: new Array(),
+			aGInfoWindows: new Array(),
 			/**
 			 *	{Function}	draw
 			 *		+ Pachubeからのデータ取得が終わった後、このmethodが呼ばれます。
 			 *		
 			 *		@params {Array}	data
-			 *			config.apiURI で指定したPachube APIから取得した全てのJSONがこの配列に入っています。
+			 *			config.pachubeAPI で指定したPachube APIから取得した全てのJSONがこの配列に入っています。
 			 *		
 			 *		@params {Array}	data
-			 *			config.apiURI で指定したPachube APIから取得した全てのJSONがこの配列に入っています。
+			 *			config.pachubeAPI で指定したPachube APIから取得した全てのJSONがこの配列に入っています。
 			 */
 			draw: function(elTarget, aData)
 			{
@@ -181,7 +186,7 @@ $(document).ready(function()
 			 *	{Function}	visualize
 			 *		
 			 *		@params {Array}	aData
-			 *			config.apiURI で指定したPachube APIから取得した全てのJSONがこの配列に入っています。
+			 *			config.pachubeAPI で指定したPachube APIから取得した全てのJSONがこの配列に入っています。
 			 */
 			visualize: function(aData)
 			{
@@ -195,12 +200,13 @@ $(document).ready(function()
 					{
 						continue;
 					};
-
+					
 					/**
 					 *	地図上にOverlayを置く時に使用する緯度経度
 					 */
 					var oGLatLng = new google.maps.LatLng(oJson.location.lat, oJson.location.lon, false);
 					/**
+					 *	!!!: 要修正
 					 *	マーカーをクリックしなくても状況がある程度一覧出来る様にcircleを用意
 					 */
 					var oCircle = new google.maps.Circle({
@@ -219,7 +225,7 @@ $(document).ready(function()
 					var oGMarker = new google.maps.Marker(
 					{
 						position: oGLatLng,
-    					map: oGMap,
+					    map: oGMap,
 						title: oJson.title
 					});
 					oGMarker.nIndex = i;
@@ -228,10 +234,10 @@ $(document).ready(function()
 					 *	Markerにイベントを登録
 					 */
 					var fnCreateHtmlFromJson = this.createHtmlFromJson;
-					var aInfoWindow = this.aInfoWindow;
+					var aGInfoWindows = this.aGInfoWindows;
 					google.maps.event.addListener(oGMarker, 'click', function(oPoint)
 					{
-						$(aInfoWindow).each(function(j, oGWindow)
+						$(aGInfoWindows).each(function(j, oGWindow)
 						{
 							oGWindow.setMap(null);
 						});
@@ -240,7 +246,7 @@ $(document).ready(function()
 						{
 							content: sNewString
 						});
-						aInfoWindow.push(oGInfoWindow);
+						aGInfoWindows.push(oGInfoWindow);
 						oGInfoWindow.open(oGMap, this);
 					});
 				};
@@ -303,8 +309,8 @@ $(document).ready(function()
 		 */
 		if ( !config.visualizer )
 		{
-			config.visualizer = new GmVisualizer();
+			config.visualizer = new GmcVisualizer();
 		};
-		(new GmDataParser()).getData();
+		(new GmcDataParser()).getData();
 	}
 })(jQuery);
