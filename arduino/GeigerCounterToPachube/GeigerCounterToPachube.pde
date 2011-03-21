@@ -21,7 +21,8 @@ const char *apiKey = "zJ1qvUtakkVH6aEIZft805NP2C5RrRhYTP98tC8S6i8";
 
 // REPLACE WITH A PROPER MAC ADDRESS
 byte macAddress[] = { 
-  0x01, 0x23, 0x45, 0x67, 0x90, 0xAB };
+//  0x01, 0x23, 0x45, 0x67, 0x90, 0xAB };
+  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 
 // The IP address of api.pachube.com
 byte serverIpAddress[] = { 
@@ -33,6 +34,8 @@ Client client(serverIpAddress, 80);
 NewSoftSerial softSerial(2, 3);
 
 String inString = "";
+
+String csvData = "";
 
 #ifdef TEST
 // フィードの間隔(この場合は10,000ms)
@@ -99,7 +102,8 @@ void loop() {
     }
 
     if (inChar == 13) {
-      processReceivedMessage();
+      processReceivedMessage(inString);
+      inString = "";
     }
   }
 
@@ -114,14 +118,14 @@ void loop() {
     Serial.println();
     Serial.println("Updating...");
 
-    inString += random(0, 10);
-    processReceivedMessage();
+    inString = random(0, 10);
+    processReceivedMessage(inString);
   }
 #endif
 }
 
-void updateDataStream(const char *csvData) {
-  int contentLength = strlen(csvData);
+void updateDataStream(String& outData) {
+  int contentLength = outData.length();
 
   client.print("PUT /v2/feeds/");
   client.print(environmentId);
@@ -134,27 +138,41 @@ void updateDataStream(const char *csvData) {
   client.println(contentLength);
   client.println("Content-Type: text/csv");
   client.println();
-  client.println(csvData);
+  client.println(outData);
 }
 
-void processReceivedMessage() {
-  // サーバに対して送信するデータを収める配列
-  static char csvData[20];
-
-  if (inString.length() < 0) {
+void processReceivedMessage(String& message) {
+  if (message.length() < 0) {
     return;
   }
 
-  int countsPerMinute = inString.toInt();
+  int countsPerMinute = message.toInt();
   float microsievertPerHour = (float)countsPerMinute * 0.002333;
 
+  // Since "+" operator doesn't support float values,
+  // convert a float value to a fixed point value
   int integerPortion = (int)microsievertPerHour;
   int fractionalPortion = (microsievertPerHour - integerPortion + 0.0005) * 1000;
 
-  sprintf(csvData, "0,%d\n1,%d.%03d", countsPerMinute, integerPortion, fractionalPortion);
+  csvData = "";
+  csvData += "0,";
+  csvData += countsPerMinute;
+  csvData += "\n";
+  csvData += "1,";
+  csvData += integerPortion;
+  csvData += ".";
+
+  if (fractionalPortion < 10) {
+    // e.g. 9 > "00" + "9" = "009"
+    csvData += "00";
+  } 
+  else if (fractionalPortion < 100) {
+    // e.g. 99 > "0" + "99" = "099"
+    csvData += "0";
+  }
+
+  csvData += fractionalPortion;
 
   updateDataStream(csvData);
-
-  inString = "";
 }
 
