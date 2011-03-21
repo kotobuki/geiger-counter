@@ -10,26 +10,37 @@
 #include <EthernetDHCP.h>
 #include <NewSoftSerial.h>
 
+// TESTING PURPOSE ONLY
+#define TEST
+
 // Pachubeの環境ID
-const int environmentId = 1234;
+const int environmentId = 20337;
 
 // 自分のAPIキー
-const char *apiKey = "YOUR_API_KEY";
+const char *apiKey = "zJ1qvUtakkVH6aEIZft805NP2C5RrRhYTP98tC8S6i8";
 
-// MACアドレス（Ethernetシールド底面のシールに記載）
+// REPLACE WITH A PROPER MAC ADDRESS
 byte macAddress[] = { 
   0x01, 0x23, 0x45, 0x67, 0x90, 0xAB };
 
-// PachubeのIPアドレス
+// The IP address of api.pachube.com
 byte serverIpAddress[] = { 
   173, 203, 98, 29 };
 
-// クライアント
+// The client
 Client client(serverIpAddress, 80);
 
 NewSoftSerial softSerial(2, 3);
 
 String inString = "";
+
+#ifdef TEST
+// フィードの間隔(この場合は10,000ms)
+const unsigned int samplingInterval = 9999;
+
+// 次にフィードを更新する時刻
+unsigned long nextExecuteMillis = 0;
+#endif
 
 void setup() {
   // シリアルモニタで動作確認するためのシリアル通信を動作開始
@@ -91,52 +102,58 @@ void loop() {
       processReceivedMessage();
     }
   }
+
+#ifdef TEST
+  // フィードを更新すべき時刻になっているかどうか判断
+  unsigned long currentMillis = millis();
+  if (currentMillis > nextExecuteMillis) {
+    // 更新すべき時刻であれば次回更新する時刻をセット
+    nextExecuteMillis = currentMillis + samplingInterval;
+
+    // データストリームを更新
+    Serial.println();
+    Serial.println("Updating...");
+
+    inString += random(0, 10);
+    processReceivedMessage();
+  }
+#endif
 }
 
-// データストリームの更新処理
-void updateDataStream(int datastreamId, const char *pachubeData) {
-  int contentLength = strlen(pachubeData);
+void updateDataStream(const char *csvData) {
+  int contentLength = strlen(csvData);
 
-  // サーバにアクセスして指定したデータストリームを更新
-  client.print("PUT /api/feeds/");
+  client.print("PUT /v2/feeds/");
   client.print(environmentId);
-  client.print("/datastreams/");
-  client.print(datastreamId);
-  client.println(".csv HTTP/1.1");
+  client.println(" HTTP/1.1");
   client.println("User-Agent: Arduino");
-  client.println("Host: www.pachube.com");
+  client.println("Host: api.pachube.com");
   client.print("X-PachubeApiKey: ");
   client.println(apiKey);
   client.print("Content-Length: ");
   client.println(contentLength);
   client.println("Content-Type: text/csv");
   client.println();
-  client.println(pachubeData);
+  client.println(csvData);
 }
 
 void processReceivedMessage() {
   // サーバに対して送信するデータを収める配列
-  static char pachubeData[10];
+  static char csvData[20];
 
   if (inString.length() < 0) {
     return;
   }
 
   int countsPerMinute = inString.toInt();
-  // データを配列pachubeDataにプリント
-  sprintf(pachubeData, "%d", countsPerMinute);
-  updateDataStream(0, pachubeData);
-
   float microsievertPerHour = (float)countsPerMinute * 0.002333;
-  // データを配列pachubeDataにプリント
-  if (microsievertPerHour > 10) {
-    sprintf(pachubeData, "%d", round(microsievertPerHour));    
-  } 
-  else {
-    sprintf(pachubeData, "%f", microsievertPerHour);
-  }
 
-  updateDataStream(1, pachubeData);
+  int integerPortion = (int)microsievertPerHour;
+  int fractionalPortion = (microsievertPerHour - integerPortion + 0.0005) * 1000;
+
+  sprintf(csvData, "0,%d\n1,%d.%03d", countsPerMinute, integerPortion, fractionalPortion);
+
+  updateDataStream(csvData);
 
   inString = "";
 }
