@@ -11,7 +11,7 @@
 #include <NewSoftSerial.h>
 
 // TESTING PURPOSE ONLY
-#define TEST
+//#define TEST
 
 // Pachubeの環境ID
 const int environmentId = 20337;
@@ -21,8 +21,7 @@ const char *apiKey = "zJ1qvUtakkVH6aEIZft805NP2C5RrRhYTP98tC8S6i8";
 
 // REPLACE WITH A PROPER MAC ADDRESS
 byte macAddress[] = { 
-//  0x01, 0x23, 0x45, 0x67, 0x90, 0xAB };
-  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+  0x01, 0x23, 0x45, 0x67, 0x90, 0xAB };
 
 // The IP address of api.pachube.com
 byte serverIpAddress[] = { 
@@ -31,7 +30,8 @@ byte serverIpAddress[] = {
 // The client
 Client client(serverIpAddress, 80);
 
-NewSoftSerial softSerial(2, 3);
+// An Ethernet Shiled uses 2, 4, 11, 12 and 13
+NewSoftSerial softSerial(5, 6);
 
 String inString = "";
 
@@ -45,12 +45,15 @@ const unsigned int samplingInterval = 9999;
 unsigned long nextExecuteMillis = 0;
 #endif
 
+// Values to calculate counts per minute
+int index = 0;
+int count = 0;
+
+long lastConnectionTime = 0;
+
 void setup() {
   // シリアルモニタで動作確認するためのシリアル通信を動作開始
   Serial.begin(9600);
-
-  // The serial port to communicate with your Gaiger counter
-  softSerial.begin(9600);
 
   // DHCPでIPアドレスを取得
   Serial.println("Getting an IP address...");
@@ -68,17 +71,9 @@ void setup() {
   Serial.print(ipAddr[3], DEC);
   Serial.println();
 
-  // 接続を試みる
-  Serial.println("Connecting to Pachube...");
-  if (client.connect()) {
-    // 接続に成功したらシリアルにレポート
-    Serial.println("Connected");
-  }
-  else {
-    // 接続に失敗したらシリアルにレポートして以降の動作を停止
-    Serial.println("Connection failed");
-    while(true);
-  }
+  // Begin the serial port to communicate with your Gaiger counter
+  softSerial.begin(9600);
+  softSerial.flush();
 }
 
 void loop() {
@@ -91,9 +86,15 @@ void loop() {
     Serial.print(c);
   }
 
+  if ((millis() - lastConnectionTime) > 5000) {
+    if (client.connected()) {
+      Serial.println("Disconnecting.");
+      client.stop();
+    }
+  }
+
   while (softSerial.available()) {
     char inChar = softSerial.read();
-    Serial.print(inChar);
 
     if (isDigit(inChar)) {
       // convert the incoming byte to a char 
@@ -102,7 +103,24 @@ void loop() {
     }
 
     if (inChar == 13) {
-      processReceivedMessage(inString);
+      if (inString.length() > 0) {
+        count += inString.toInt();
+
+        Serial.print(index);
+        Serial.print(": ");
+        Serial.println(count);
+
+        index++;
+
+        if (index == 60) {
+          Serial.println();
+          Serial.println("Updating...");
+          updateDataStream(count);
+          index = 0;
+          count = 0;
+        }
+      }
+
       inString = "";
     }
   }
@@ -118,35 +136,33 @@ void loop() {
     Serial.println();
     Serial.println("Updating...");
 
-    inString = random(0, 10);
-    processReceivedMessage(inString);
+    int cpm = random(0, 10);
+    updateDataStream(cpm);
   }
 #endif
 }
 
-void updateDataStream(String& outData) {
-  int contentLength = outData.length();
+void updateDataStream(int countsPerMinute) {
+  if (client.connected()) {
+    Serial.println();
+    Serial.println("Disconnecting.");
+    client.stop();
+  }
 
-  client.print("PUT /v2/feeds/");
-  client.print(environmentId);
-  client.println(" HTTP/1.1");
-  client.println("User-Agent: Arduino");
-  client.println("Host: api.pachube.com");
-  client.print("X-PachubeApiKey: ");
-  client.println(apiKey);
-  client.print("Content-Length: ");
-  client.println(contentLength);
-  client.println("Content-Type: text/csv");
-  client.println();
-  client.println(outData);
-}
-
-void processReceivedMessage(String& message) {
-  if (message.length() < 0) {
+  // 接続を試みる
+  Serial.println();
+  Serial.print("Connecting to Pachube...");
+  if (client.connect()) {
+    // 接続に成功したらシリアルにレポート
+    Serial.println("connected");
+    lastConnectionTime = millis();
+  }
+  else {
+    // 接続に失敗したらシリアルにレポートして以降の動作を停止
+    Serial.println("failed");
     return;
   }
 
-  int countsPerMinute = message.toInt();
   float microsievertPerHour = (float)countsPerMinute * 0.002333;
 
   // Since "+" operator doesn't support float values,
@@ -173,6 +189,19 @@ void processReceivedMessage(String& message) {
 
   csvData += fractionalPortion;
 
-  updateDataStream(csvData);
+  Serial.println(csvData);
+
+  client.print("PUT /v2/feeds/");
+  client.print(environmentId);
+  client.println(" HTTP/1.1");
+  client.println("User-Agent: Arduino");
+  client.println("Host: api.pachube.com");
+  client.print("X-PachubeApiKey: ");
+  client.println(apiKey);
+  client.print("Content-Length: ");
+  client.println(csvData.length());
+  client.println("Content-Type: text/csv");
+  client.println();
+  client.println(csvData);
 }
 
