@@ -10,18 +10,10 @@
 #include <EthernetDHCP.h>
 #include <NewSoftSerial.h>
 
+#include "PrivateSettings.h"
+
 // TESTING PURPOSE ONLY
 //#define TEST
-
-// Pachubeの環境ID
-const int environmentId = 20337;
-
-// 自分のAPIキー
-const char *apiKey = "zJ1qvUtakkVH6aEIZft805NP2C5RrRhYTP98tC8S6i8";
-
-// REPLACE WITH A PROPER MAC ADDRESS
-byte macAddress[] = { 
-  0x01, 0x23, 0x45, 0x67, 0x90, 0xAB };
 
 // The IP address of api.pachube.com
 byte serverIpAddress[] = { 
