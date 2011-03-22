@@ -12,8 +12,9 @@
 
 #include "PrivateSettings.h"
 
-// TESTING PURPOSE ONLY
-//#define TEST
+// Firmware Version
+// v12: uncomment the following line, v13: comment the following line
+#define FIRMWARE_V12
 
 // The IP address of api.pachube.com
 byte serverIpAddress[] = { 
@@ -29,9 +30,9 @@ String inString = "";
 
 String csvData = "";
 
-#ifdef TEST
-// フィードの間隔(この場合は10,000ms)
-const unsigned int samplingInterval = 9999;
+#ifdef FIRMWARE_V12
+// Sampling interval (60,000ms = 1min)
+const unsigned int samplingInterval = 59999;
 
 // 次にフィードを更新する時刻
 unsigned long nextExecuteMillis = 0;
@@ -66,6 +67,7 @@ void setup() {
   // Begin the serial port to communicate with your Gaiger counter
   softSerial.begin(9600);
   softSerial.flush();
+  nextExecuteMillis = millis() + samplingInterval;
 }
 
 void loop() {
@@ -85,9 +87,29 @@ void loop() {
     }
   }
 
+#ifdef FIRMWARE_V12
   while (softSerial.available()) {
     char inChar = softSerial.read();
 
+    if (inChar == '0' || inChar == '1') {
+      // The output from the Geiger counter should be '0' or '1'
+      // Just ignore errors
+      count++;
+    }
+  }
+
+  if (millis() > nextExecuteMillis) {
+    Serial.println();
+    Serial.println("Updating...");
+
+    updateDataStream(count);
+    softSerial.flush();
+    count = 0;
+    nextExecuteMillis = millis() + samplingInterval;
+  }
+#else
+  while (softSerial.available()) {
+    char inChar = softSerial.read();
     if (isDigit(inChar)) {
       // convert the incoming byte to a char 
       // and add it to the string:
@@ -115,21 +137,6 @@ void loop() {
 
       inString = "";
     }
-  }
-
-#ifdef TEST
-  // フィードを更新すべき時刻になっているかどうか判断
-  unsigned long currentMillis = millis();
-  if (currentMillis > nextExecuteMillis) {
-    // 更新すべき時刻であれば次回更新する時刻をセット
-    nextExecuteMillis = currentMillis + samplingInterval;
-
-    // データストリームを更新
-    Serial.println();
-    Serial.println("Updating...");
-
-    int cpm = random(0, 10);
-    updateDataStream(cpm);
   }
 #endif
 }
