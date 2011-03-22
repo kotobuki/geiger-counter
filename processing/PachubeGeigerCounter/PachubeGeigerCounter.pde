@@ -2,7 +2,7 @@
 // to the Pachube server
 // 
 // Note:
-// This example is for SparkFun's SEN-09848
+// This example is for SparkFun's SEN-09848 (firmware: v13)
 // 
 // Requirement:
 // EEML for Processing
@@ -24,12 +24,6 @@ Serial serialPort;
 
 // Create a DataOut object to upload data to the Pachube server
 DataOut dataOut;
-
-// The feed URL
-final String feedUrl = "http://api.pachube.com/v2/feeds/20337.xml";
-
-// The shared secure key (Permissons: put, Expires: 03/31/11 11:59PM)
-final String apiKey = "zJ1qvUtakkVH6aEIZft805NP2C5RrRhYTP98tC8S6i8";
 
 // The tags for feeds
 final String tags = "sensor:type=radiation,sensor:model=lnd-712";
