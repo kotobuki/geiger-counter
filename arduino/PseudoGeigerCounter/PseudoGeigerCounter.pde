@@ -14,10 +14,10 @@ void setup() {
 void loop() {
   digitalWrite(ledPin, HIGH);
   Serial.print("counts per second: ");
-  Serial.print(random(256), DEC);
+  Serial.print(random(10), DEC);
   Serial.print("  \r");
   digitalWrite(ledPin, LOW);
 
-  delay(60000);
+  delay(1000);
 }
 
