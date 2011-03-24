@@ -7,8 +7,14 @@ $(document).ready(function()
 {
 	$('#gmcounter-viewer').visualizeGmCounter(
 	{
-		pachubeAPI:[
-			'http://api.pachube.com/v2/feeds.json?tag=sensor:type=radiation&lat=35&lon=139&distance=2000'
+		pachubeAPIParams:[
+	      {
+			'tag':'sensor:type=radiation',
+			'lat':35,
+			'lon':139,
+			'distance':2000,
+			'timezone':9
+	      }
 		]
 		// visualizer: new GmcVisualizer()
 	});
@@ -52,7 +58,9 @@ $(document).ready(function()
 		 */
 		config = $.extend(
 		{
-			pachubeAPI:[],
+			pachubeAPIURL:'http://api.pachube.com/v2/feeds.json',
+			pachubeAPIKey:'MgztfC5Tt2fO-gqrPeokxCM2kT6MdKAS6eik0YZZ8UE', // API Key for <jsrun.it>
+			pachubeAPIParams:[],
 			visualizer: undefined
 		}, config);
 
@@ -87,20 +95,21 @@ $(document).ready(function()
 			getData: function()
 			{
 				var aData = this.aData;
-				for(var i=0; i<config.pachubeAPI.length; i++)
+				for(var i=0; i<config.pachubeAPIParams.length; i++)
 				{
+					config.pachubeAPIParams[i].key = config.pachubeAPIKey;
 					$.ajax(
 					{
-						url: config.pachubeAPI[i],
+						url: config.pachubeAPIURL,
 						dataType : 'jsonp',
 						jsonp:'callback',
 						timeout: 5000,
-						data: "timezone=+9",
+						data: config.pachubeAPIParams[i],
 				    	success: function(oJson)
 						{
 							aData = aData.concat(oJson.results);
 							
-							if(i == config.pachubeAPI.length)
+							if(i == config.pachubeAPIParams.length)
 							{
 								if (config.visualizer.draw)
 								{
@@ -114,7 +123,7 @@ $(document).ready(function()
 				    	},
 				    	error: function(e)
 						{
-							alert(e);
+							console.log(e);
 						},
 						statusCode:
 						{
@@ -201,6 +210,34 @@ $(document).ready(function()
 						continue;
 					};
 					
+					// -------------------------------------
+					/**
+					 *	for debugging...
+					 */
+					// console.log(oJson)
+					// console.log("[title] "+ oJson.title);
+					// console.log("[creator] "+ oJson.creator);
+					// console.log("[description] "+ oJson.description);
+					// console.log("[at] "+ oJson.datastreams[0].at);
+					// console.log("[current_value] "+ oJson.datastreams[0].current_value);
+					// console.log("[max_value] "+ oJson.datastreams[0].max_value);
+					// console.log("[min_value] "+ oJson.datastreams[0].min_value);
+					// console.log("[unit.label] "+ oJson.datastreams[0].unit.label);
+
+					// if (oJson.datastreams[0].unit)
+					// {
+					// 	console.log("["+i+"][unit.symbol] "+ oJson.datastreams[0].unit.symbol);					
+					// }
+					// else
+					// {
+					// 	console.log("["+i+"]none");
+					// };
+
+					// console.log("[unit.type] "+ oJson.datastreams[0].unit.type);
+					// console.log("[location.lat] "+ oJson.location.lat);
+					// console.log("[location.lon] "+ oJson.location.lon);
+					// console.log("------------");
+					// -------------------------------------
 					/**
 					 *	地図上にOverlayを置く時に使用する緯度経度
 					 */
@@ -209,16 +246,17 @@ $(document).ready(function()
 					 *	!!!: 要修正
 					 *	マーカーをクリックしなくても状況がある程度一覧出来る様にcircleを用意
 					 */
-					var oCircle = new google.maps.Circle({
-						map: oGMap,
-						center: oGLatLng,
-						radius: 30000,
-						fillOpacity: 0.5,
-						fillColor: '#ff0000',
-						strokeColor: '#ff0000',
-						strokeOpacity: 1,
-						strokeWeight: 1,
-					});
+					// var oCircle = new google.maps.Circle(
+					// {
+					// 	map: oGMap,
+					// 	center: oGLatLng,
+					// 	radius: 30000,
+					// 	fillOpacity: 0.5,
+					// 	fillColor: '#ff0000',
+					// 	strokeColor: '#ff0000',
+					// 	strokeOpacity: 1,
+					// 	strokeWeight: 1,
+					// });
 					/**
 					 *	Markerを地図上に追加
 					 */
@@ -270,6 +308,11 @@ $(document).ready(function()
 				// console.log("[current_value] "+ oJson.datastreams[0].current_value);
 				// console.log("[max_value] "+ oJson.datastreams[0].max_value);
 				// console.log("[min_value] "+ oJson.datastreams[0].min_value);
+				// console.log("[unit.label] "+ oJson.datastreams[0].unit.label);
+				// console.log("[unit.symbol] "+ oJson.datastreams[0].unit.symbol);
+				// console.log("[unit.type] "+ oJson.datastreams[0].unit.type);
+				// console.log("[location.lat] "+ oJson.location.lat);
+				// console.log("[location.lon] "+ oJson.location.lon);
 				// console.log("------------");
 				// -------------------------------------
 
