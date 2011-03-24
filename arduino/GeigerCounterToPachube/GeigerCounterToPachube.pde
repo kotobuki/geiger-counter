@@ -1,3 +1,7 @@
+// Connection:
+// * An Arduino Ethernet Shield
+// * D3: The output pin of the Geiger counter (active low)
+// 
 // Requirements:
 // EthernetDHCP
 // http://gkaindl.com/software/arduino-ethernet
@@ -8,51 +12,39 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include <EthernetDHCP.h>
-#include <NewSoftSerial.h>
 
 #include "PrivateSettings.h"
-
-// Firmware Version
-// v12: uncomment the following line, v13: comment the following line
-#define FIRMWARE_V12
 
 // The IP address of api.pachube.com
 byte serverIpAddress[] = { 
   173, 203, 98, 29 };
 
-// The client
+// The TCP client
 Client client(serverIpAddress, 80);
-
-// An Ethernet Shiled uses 2, 4, 11, 12 and 13
-NewSoftSerial softSerial(5, 6);
-
-String inString = "";
 
 String csvData = "";
 
-#ifdef FIRMWARE_V12
 // Sampling interval (60,000ms = 1min)
 const unsigned int samplingInterval = 59999;
 
-// 次にフィードを更新する時刻
+// The next time to feed
 unsigned long nextExecuteMillis = 0;
-#endif
 
-// Values to calculate counts per minute
-int index = 0;
+// Value to store counts per minute
 int count = 0;
 
+// The last connection time to disconnect from the server
+// after uploaded feeds
 long lastConnectionTime = 0;
 
 void setup() {
-  // シリアルモニタで動作確認するためのシリアル通信を動作開始
   Serial.begin(9600);
 
-  // DHCPでIPアドレスを取得
+  // Initiate a DHCP session
   Serial.println("Getting an IP address...");
   EthernetDHCP.begin(macAddress);
 
-  // 確認用に取得したIPアドレスをシリアルにプリント
+  // We now have a DHCP lease, so we print out some information
   const byte* ipAddr = EthernetDHCP.ipAddress();
   Serial.print("IP address: ");
   Serial.print(ipAddr[0], DEC);
@@ -64,17 +56,20 @@ void setup() {
   Serial.print(ipAddr[3], DEC);
   Serial.println();
 
-  // Begin the serial port to communicate with your Gaiger counter
-  softSerial.begin(9600);
-  softSerial.flush();
+  // Attach an interrupt to the digital pin and start counting
+  // 
+  // Note:
+  // Most Arduino boards have two external interrupts: 
+  // numbers 0 (on digital pin 2) and 1 (on digital pin 3)
+  attachInterrupt(1, onPulse, FALLING);
   nextExecuteMillis = millis() + samplingInterval;
 }
 
 void loop() {
-  // DHCPによるIPアドレスのリースを維持
+  // Periodically call this method to maintain your DHCP lease
   EthernetDHCP.maintain();
 
-  // サーバから受け取ったデータをPCにもエコー
+  // Echo received strings to a host PC
   if (client.available()) {
     char c = client.read();
     Serial.print(c);
@@ -87,58 +82,22 @@ void loop() {
     }
   }
 
-#ifdef FIRMWARE_V12
-  while (softSerial.available()) {
-    char inChar = softSerial.read();
-
-    if (inChar == '0' || inChar == '1') {
-      // The output from the Geiger counter should be '0' or '1'
-      // Just ignore errors
-      count++;
-    }
-  }
-
   if (millis() > nextExecuteMillis) {
     Serial.println();
     Serial.println("Updating...");
 
-    updateDataStream(count);
-    softSerial.flush();
+    int countsPerMinute = count;
     count = 0;
+
+    updateDataStream(countsPerMinute);
     nextExecuteMillis = millis() + samplingInterval;
   }
-#else
-  while (softSerial.available()) {
-    char inChar = softSerial.read();
-    if (isDigit(inChar)) {
-      // convert the incoming byte to a char 
-      // and add it to the string:
-      inString += (char)inChar; 
-    }
+}
 
-    if (inChar == 13) {
-      if (inString.length() > 0) {
-        count += inString.toInt();
-
-        Serial.print(index);
-        Serial.print(": ");
-        Serial.println(count);
-
-        index++;
-
-        if (index == 60) {
-          Serial.println();
-          Serial.println("Updating...");
-          updateDataStream(count);
-          index = 0;
-          count = 0;
-        }
-      }
-
-      inString = "";
-    }
-  }
-#endif
+// On each falling edge of the Geiger counter's output, 
+// increment the counter
+void onPulse() {
+  count++;
 }
 
 void updateDataStream(int countsPerMinute) {
@@ -148,16 +107,14 @@ void updateDataStream(int countsPerMinute) {
     client.stop();
   }
 
-  // 接続を試みる
+  // Try to connect to the server
   Serial.println();
   Serial.print("Connecting to Pachube...");
   if (client.connect()) {
-    // 接続に成功したらシリアルにレポート
     Serial.println("connected");
     lastConnectionTime = millis();
   }
   else {
-    // 接続に失敗したらシリアルにレポートして以降の動作を停止
     Serial.println("failed");
     return;
   }
