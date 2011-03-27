@@ -24,8 +24,8 @@ Client client(serverIpAddress, 80);
 
 String csvData = "";
 
-// Sampling interval (60,000ms = 1min)
-const unsigned int samplingInterval = 59999;
+// Sampling interval (e.g. 60,000ms = 1min)
+unsigned long updateIntervalInMillis = 0;
 
 // The next time to feed
 unsigned long nextExecuteMillis = 0;
@@ -62,7 +62,8 @@ void setup() {
   // Most Arduino boards have two external interrupts: 
   // numbers 0 (on digital pin 2) and 1 (on digital pin 3)
   attachInterrupt(1, onPulse, FALLING);
-  nextExecuteMillis = millis() + samplingInterval;
+  updateIntervalInMillis = (updateIntervalInMinutes * 60000) - 1;
+  nextExecuteMillis = millis() + updateIntervalInMillis;
 }
 
 void loop() {
@@ -86,11 +87,11 @@ void loop() {
     Serial.println();
     Serial.println("Updating...");
 
-    int countsPerMinute = count;
+    float countsPerMinute = (float)count / (float)updateIntervalInMinutes;
     count = 0;
 
     updateDataStream(countsPerMinute);
-    nextExecuteMillis = millis() + samplingInterval;
+    nextExecuteMillis = millis() + updateIntervalInMillis;
   }
 }
 
@@ -100,7 +101,7 @@ void onPulse() {
   count++;
 }
 
-void updateDataStream(int countsPerMinute) {
+void updateDataStream(float countsPerMinute) {
   if (client.connected()) {
     Serial.println();
     Serial.println("Disconnecting.");
@@ -119,31 +120,15 @@ void updateDataStream(int countsPerMinute) {
     return;
   }
 
-  float microsievertPerHour = (float)countsPerMinute * 0.002333;
-
-  // Since "+" operator doesn't support float values,
-  // convert a float value to a fixed point value
-  int integerPortion = (int)microsievertPerHour;
-  int fractionalPortion = (microsievertPerHour - integerPortion + 0.0005) * 1000;
+  // Convert from cpm to µSv/h with the pre-defined coefficient
+  float microsievertPerHour = countsPerMinute * conversionCoefficient;
 
   csvData = "";
   csvData += "0,";
-  csvData += countsPerMinute;
+  appendFloatValueAsString(csvData, countsPerMinute);
   csvData += "\n";
   csvData += "1,";
-  csvData += integerPortion;
-  csvData += ".";
-
-  if (fractionalPortion < 10) {
-    // e.g. 9 > "00" + "9" = "009"
-    csvData += "00";
-  } 
-  else if (fractionalPortion < 100) {
-    // e.g. 99 > "0" + "99" = "099"
-    csvData += "0";
-  }
-
-  csvData += fractionalPortion;
+  appendFloatValueAsString(csvData, microsievertPerHour);
 
   Serial.println(csvData);
 
@@ -161,3 +146,23 @@ void updateDataStream(int countsPerMinute) {
   client.println(csvData);
 }
 
+// Since "+" operator doesn't support float values,
+// convert a float value to a fixed point value
+void appendFloatValueAsString(String& outString,float value) {
+  int integerPortion = (int)value;
+  int fractionalPortion = (value - integerPortion + 0.0005) * 1000;
+
+  outString += integerPortion;
+  outString += ".";
+
+  if (fractionalPortion < 10) {
+    // e.g. 9 > "00" + "9" = "009"
+    outString += "00";
+  } 
+  else if (fractionalPortion < 100) {
+    // e.g. 99 > "0" + "99" = "099"
+    outString += "0";
+  }
+
+  outString += fractionalPortion;
+}
