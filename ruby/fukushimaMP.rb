@@ -74,3 +74,4 @@ end
 
 # replace the local file
 system("mv tmp.csv fukushima1MP.csv")
+system("rm diff*.csv")
