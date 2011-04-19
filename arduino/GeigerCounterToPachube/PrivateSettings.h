@@ -15,12 +15,10 @@ byte macAddress[] = {
 // Update interval in minutes
 const int updateIntervalInMinutes = 5;
 
-// The conversion coefficient from cpm to µSv/h for LND 712
-// 
-// Reference:
-// http://www.lndinc.com/products/348/
-// 
-// 1,000CPS ≒ 0.14mGy/h
-// 60,000CPM ≒ 140µGy/h
-// 1CPM ≒ 0.002333µGy/h
-const float conversionCoefficient = 0.002333;
+enum TubeModel {
+  LND_712,  // LND
+  SMB_20,   // GSTube
+  J408GAMMA // North Optic
+};
+
+const TubeModel tubeModel = LND_712;

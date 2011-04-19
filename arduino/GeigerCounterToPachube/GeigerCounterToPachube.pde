@@ -37,8 +37,43 @@ int count = 0;
 // after uploaded feeds
 long lastConnectionTime = 0;
 
+// The conversion coefficient from cpm to µSv/h
+float conversionCoefficient = 0;
+
 void setup() {
   Serial.begin(9600);
+
+  // Set the conversion coefficient from cpm to µSv/h
+  switch (tubeModel) {
+  case LND_712:
+    // Reference:
+    // http://www.lndinc.com/products/348/
+    // 
+    // 1,000CPS ≒ 0.14mGy/h
+    // 60,000CPM ≒ 140µGy/h
+    // 1CPM ≒ 0.002333µGy/h
+    conversionCoefficient = 0.002333;
+    Serial.println("Tube model: LND 712");
+    break;
+  case SMB_20:
+    // Reference:
+    // http://garden.seeedstudio.com/index.php?title=Geiger_Counter
+    // 
+    // 300CPS = 0.0084µGy/s
+    // 18,000CPM = 30.24µGy/h
+    // 1CPM = 0.00168µGy/h
+    conversionCoefficient = 0.00168;
+    Serial.println("Tube model: SMB-20");
+    break;
+  case J408GAMMA:
+    // Reference:
+    // http://www.libelium.com/wireless_sensor_networks_to_control_radiation_levels_geiger_counters
+    conversionCoefficient = 0.00277;
+    Serial.println("Tube model: J408Gamma");
+    break;
+  default:
+    Serial.println("Tube model: UNKNOWN!");
+  }
 
   // Initiate a DHCP session
   Serial.println("Getting an IP address...");
@@ -166,3 +201,8 @@ void appendFloatValueAsString(String& outString,float value) {
 
   outString += fractionalPortion;
 }
+
+
+
+
+
