@@ -10,8 +10,10 @@ $KCODE = "UTF8"
 
 # http://oku.edu.mie-u.ac.jp/~okumura/stat/data/
 baseFileName = "mext"
-targetRowNumber = [16, 24, 26, 25, 27, 29, 11, 12]  # tokyo, gifu, nagoya, shizuoka, mie, kyoto, mito, utsunomiya
-feedId = [22002, 22004, 22005, 22014, 22015, 22017, 22018, 22019]
+
+# tokyo, gifu, nagoya, shizuoka, mie, kyoto, mito, utsunomiya, morioka, akita, yamagata, aomori, sendai, sapporo, uruma
+targetRowNumber = [16, 24, 26, 25, 27, 29, 11, 12, 6, 8, 9, 5, 7, 4, 50]
+feedId = [22002, 22004, 22005, 22014, 22015, 22017, 22018, 22019, 22446, 22447, 22448, 22450, 22449, 22453, 22452]
 
 def upload_to_pachube(feedId, csvFileBaseName)
   reader = File::open(csvFileBaseName + '.csv', 'r')
@@ -98,16 +100,16 @@ def create_csv_file_for_pachube(inFileName, outFileName, targetRow)
 end
 
 # compare local file with the remote file
-system("curl http://oku.edu.mie-u.ac.jp/~okumura/stat/data/mext.csv > tmp3.csv")
-system("diff mext.csv tmp3.csv > diff3.csv")
+system("curl http://oku.edu.mie-u.ac.jp/~okumura/stat/data/mext.csv > tmp.csv")
+system("diff mext.csv tmp.csv > diff3.csv")
 
 if (File.open("diff3.csv").read.count("\n") > 0) then
   p "found changes"
   feedId.length.times do |i|
-    create_csv_file_for_pachube("mext.csv", "tmp3_old.csv", targetRowNumber[i])
-    create_csv_file_for_pachube("tmp3.csv", "tmp3_new.csv", targetRowNumber[i])
-    system("diff tmp3_old.csv tmp3_new.csv > tmp3_diff.csv")
-    upload_to_pachube(feedId[i], "tmp3_diff")    
+    create_csv_file_for_pachube("mext.csv", "tmp_old.csv", targetRowNumber[i])
+    create_csv_file_for_pachube("tmp.csv", "tmp_new.csv", targetRowNumber[i])
+    system("diff tmp_old.csv tmp_new.csv > tmp_diff.csv")
+    upload_to_pachube(feedId[i], "tmp_diff")    
   end
 else
   p "found no changes"
@@ -115,6 +117,6 @@ else
 end
 
 # replace the local file
-system("mv tmp3.csv mext.csv")
-system("rm tmp3*.csv")
+system("mv tmp.csv mext.csv")
+system("rm tmp*.csv")
 system("rm diff3.csv")

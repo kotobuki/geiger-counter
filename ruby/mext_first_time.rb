@@ -10,8 +10,7 @@ $KCODE = "UTF8"
 
 # http://oku.edu.mie-u.ac.jp/~okumura/stat/data/
 baseFileName = "mext"
-# feedId = 22002
-feedId = 22019
+feedId = 22452
 
 def upload_to_pachube(feedId, csvFileName)
   begin
@@ -53,7 +52,7 @@ reader.each do |row|
     dateRows = Marshal.load(Marshal.dump(row))
   elsif lineCount == 3 then
     timeRows = Marshal.load(Marshal.dump(row))
-  elsif lineCount == 12 then
+  elsif lineCount == 50 then #7
     valueRows = Marshal.load(Marshal.dump(row))
   end
   lineCount += 1
