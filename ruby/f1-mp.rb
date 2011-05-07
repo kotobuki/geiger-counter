@@ -19,6 +19,7 @@ def upload_to_pachube(feedId, csvFileName)
     commandString += "http://api.pachube.com/v2/feeds/" + feedId.to_s + "/datastreams/0/datapoints.csv"
     print commandString + "\n"
     system(commandString)
+    system("rm " + csvFileName)
   rescue
     puts "error uploading"
   end

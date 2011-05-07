@@ -54,6 +54,10 @@ feedId.length.times do |i|
 
     row[0].delete!(">")
     row[0].strip!
+
+    next if row[0].split(' ')[0] == nil
+    next if row[0].split(' ')[1] == nil
+
     d = row[0].split(' ')[0].split('-')
     t = row[0].split(' ')[1].split(':')
 
