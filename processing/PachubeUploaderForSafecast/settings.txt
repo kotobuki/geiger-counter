@@ -1,0 +1,5 @@
+Feed ID,12345
+API Key,*******************************************
+Latitude,0
+Longitude,1
+Radiation dose rate,2
