@@ -9,7 +9,7 @@
  *    * Latitude
  *    * Longitude
  *    * Radiation dose rate
- * 3. Configure setting in the 'PrivateSettings' tab
+ * 3. Configure settings in the 'settings.txt' file
  * 4. Run this sketch and choose a file to be uploaded to Pachube
  * 
  * NOTE:
