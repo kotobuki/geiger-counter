@@ -10,6 +10,7 @@
  *    * Longitude
  *    * Radiation dose rate
  * 3. Configure settings in the 'settings.txt' file
+ *    NOTE: DON'T EDIT THIS SKETCH
  * 4. Run this sketch and choose a file to be uploaded to Pachube
  * 
  * NOTE:
@@ -147,6 +148,10 @@ void httpPostData(int feedId, String datastreamId, String csvData) {
     reader.close();
 
     httpConnection.disconnect();
+
+    // Since 5 API requests/minute is the limit for Pachube Basic
+    trace("Waiting for 15 seconds...");
+    Thread.sleep(15000);
   } 
   catch (MalformedURLException e) {
     println("ERROR: " + e);
@@ -155,6 +160,9 @@ void httpPostData(int feedId, String datastreamId, String csvData) {
   catch (IOException e) {
     println("ERROR: " + e);
     return;
+  }
+  catch(InterruptedException e) {
+    println("ERROR: " + e);
   }
 }
 
