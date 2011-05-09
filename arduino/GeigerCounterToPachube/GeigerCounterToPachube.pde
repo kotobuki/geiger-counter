@@ -57,19 +57,24 @@ void setup() {
     break;
   case SMB_20:
     // Reference:
+    // http://www.libelium.com/wireless_sensor_networks_to_control_radiation_levels_geiger_counters
+    conversionCoefficient = 0.00277;
+    Serial.println("Tube model: SMB-20");
+    break;
+  case J408GAMMA:
+    // Reference:
     // http://garden.seeedstudio.com/index.php?title=Geiger_Counter
     // 
     // 300CPS = 0.0084µGy/s
     // 18,000CPM = 30.24µGy/h
     // 1CPM = 0.00168µGy/h
     conversionCoefficient = 0.00168;
-    Serial.println("Tube model: SMB-20");
+    Serial.println("Tube model: J408gamma");
     break;
-  case J408GAMMA:
-    // Reference:
-    // http://www.libelium.com/wireless_sensor_networks_to_control_radiation_levels_geiger_counters
-    conversionCoefficient = 0.00277;
-    Serial.println("Tube model: J408Gamma");
+  case J306BETA:
+    // NOTE: THIS IS DUMMY
+    conversionCoefficient = 0.00168;
+    Serial.println("Tube model: J306beta");
     break;
   default:
     Serial.println("Tube model: UNKNOWN!");
@@ -96,9 +101,11 @@ void setup() {
   // Note:
   // Most Arduino boards have two external interrupts: 
   // numbers 0 (on digital pin 2) and 1 (on digital pin 3)
-  attachInterrupt(1, onPulse, FALLING);
-  updateIntervalInMillis = (updateIntervalInMinutes * 60000) - 1;
-  nextExecuteMillis = millis() + updateIntervalInMillis;
+  attachInterrupt(1, onPulse, interruptMode);
+  updateIntervalInMillis = updateIntervalInMinutes * 60000;
+
+  unsigned long now = millis();
+  nextExecuteMillis = now + updateIntervalInMillis;
 }
 
 void loop() {
@@ -111,23 +118,25 @@ void loop() {
     Serial.print(c);
   }
 
-  if ((millis() - lastConnectionTime) > 5000) {
-    if (client.connected()) {
-      Serial.println("Disconnecting.");
-      client.stop();
-    }
-  }
-
-  if (millis() > nextExecuteMillis) {
+  unsigned long now = millis();
+  if (client.connected() && ((now - lastConnectionTime) > 30000)) {
     Serial.println();
-    Serial.println("Updating...");
-
-    float countsPerMinute = (float)count / (float)updateIntervalInMinutes;
-    count = 0;
-
-    updateDataStream(countsPerMinute);
-    nextExecuteMillis = millis() + updateIntervalInMillis;
+    Serial.println("Disconnecting.");
+    client.stop();
   }
+
+  if (now < nextExecuteMillis) {
+    return;
+  }
+  nextExecuteMillis = now + updateIntervalInMillis;
+
+  Serial.println();
+  Serial.println("Updating...");
+
+  float countsPerMinute = (float)count / (float)updateIntervalInMinutes;
+  count = 0;
+
+  updateDataStream(countsPerMinute);
 }
 
 // On each falling edge of the Geiger counter's output, 
@@ -201,8 +210,4 @@ void appendFloatValueAsString(String& outString,float value) {
 
   outString += fractionalPortion;
 }
-
-
-
-
 

@@ -3,14 +3,14 @@
 // please replace with your own settings
 
 // The environment ID for your datastreams
-const int environmentId = 12345;
+const int environmentId = ********;
 
 // Your API key (a public secure key is recommended)
 const char *apiKey = "*******************************************";
 
 // REPLACE WITH A PROPER MAC ADDRESS
 byte macAddress[] = { 
-  0x01, 0x23, 0x45, 0x67, 0x89, 0xAB };
+  0x**, 0x**, 0x**, 0x**, 0x**, 0x** };
 
 // Update interval in minutes
 const int updateIntervalInMinutes = 5;
@@ -18,7 +18,15 @@ const int updateIntervalInMinutes = 5;
 enum TubeModel {
   LND_712,  // LND
   SMB_20,   // GSTube
-  J408GAMMA // North Optic
+  J408GAMMA, // North Optic
+  J306BETA  // North Optic
 };
 
-const TubeModel tubeModel = LND_712;
+// Tube model
+const TubeModel tubeModel = ********;
+
+// Interrupt mode:
+// * For most geiger counter modules: FALLING
+// * Geiger Counter Twig by Seeed Studio: RISING
+const int interruptMode = ********;
+
