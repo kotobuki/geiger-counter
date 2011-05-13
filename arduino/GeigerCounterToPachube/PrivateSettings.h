@@ -16,10 +16,10 @@ byte macAddress[] = {
 const int updateIntervalInMinutes = 5;
 
 enum TubeModel {
-  LND_712,  // LND
-  SMB_20,   // GSTube
+  LND_712,   // LND
+  SBM_20,    // GSTube
   J408GAMMA, // North Optic
-  J306BETA  // North Optic
+  J306BETA   // North Optic
 };
 
 // Tube model
