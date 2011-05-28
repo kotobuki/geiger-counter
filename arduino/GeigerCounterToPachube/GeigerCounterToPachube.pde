@@ -221,10 +221,10 @@ void updateDataStream(float countsPerMinute) {
   float microsievertPerHour = countsPerMinute * conversionCoefficient;
 
   csvData = "";
-  csvData += "0,";
+  csvData += "CPM,";
   appendFloatValueAsString(csvData, countsPerMinute);
   csvData += "\n";
-  csvData += "1,";
+  csvData += "µSv-h,";
   appendFloatValueAsString(csvData, microsievertPerHour);
 
   Serial.println(csvData);
