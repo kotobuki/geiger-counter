@@ -28,10 +28,10 @@ DataOut dataOut;
 // The tags for feeds
 final String tags = "sensor:type=radiation,sensor:model=lnd-712";
 
-// 1,000CPS ≒ 0.14mGy/h
-// 60,000CPM ≒ 140µGy/h
-// 1CPM ≒ 0.002333µGy/h
-final float coefficientOfConversion = 140.0 / 60000.0;
+// The coefficient of conversion from CPM to µSv/h
+// Reference:
+// http://einstlab.web.fc2.com/geiger/geiger3.html
+final float coefficientOfConversion = 0.00833;
 
 // Current value in CPM
 int countsPerMinute = 0;

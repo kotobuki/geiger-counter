@@ -37,9 +37,6 @@ unsigned long nextExecuteMillis = 0;
 // Value to store counts per minute
 int count = 0;
 
-// Event flag signals when a geiger event has occurred
-volatile unsigned char eventFlag = 0; 
-
 // The last connection time to disconnect from the server
 // after uploaded feeds
 long lastConnectionTime = 0;
@@ -47,9 +44,17 @@ long lastConnectionTime = 0;
 // The conversion coefficient from cpm to µSv/h
 float conversionCoefficient = 0;
 
+// Uncomment the following line if your board is a NetRAD board
+//#define NETRAD_BOARD
+
+#ifdef NETRAD_BOARD
 // NetRAD - this is specific to the NetRAD board
 const int speakerPin = 6;  // pin number of piezo speaker
 const int ledPin = 7;      // pin number of event LED
+
+// Event flag signals when a geiger event has occurred
+volatile unsigned char eventFlag = 0; 
+#endif
 
 void setup() {
   Serial.begin(57600);
@@ -58,12 +63,8 @@ void setup() {
   switch (tubeModel) {
   case LND_712:
     // Reference:
-    // http://www.lndinc.com/products/348/
-    //
-    // 1,000CPS ≒ 0.14mGy/h
-    // 60,000CPM ≒ 140µGy/h
-    // 1CPM ≒ 0.002333µGy/h
-    conversionCoefficient = 0.002333;
+    // http://einstlab.web.fc2.com/geiger/geiger3.html
+    conversionCoefficient = 0.00833;
     Serial.println("Tube model: LND 712");
     break;
   case SBM_20:
@@ -140,6 +141,7 @@ void loop() {
     client.stop();
   }
 
+#ifdef NETRAD_BOARD
   // Add any geiger event handling code here
   if (eventFlag) {
     eventFlag = 0;    // clear the event flag for later use
@@ -153,6 +155,7 @@ void loop() {
 
     noTone(speakerPin);          // turn off the speaker pulse
   }
+#endif
 
   // check if its time to update server. elapsedTime function will take into account
   // counter rollover.
@@ -174,7 +177,10 @@ void loop() {
 // can be used to do things like pulse a buzzer or flash an LED
 void onPulse() {
   count++;
+
+#ifdef NETRAD_BOARD
   eventFlag = 1;  
+#endif
 }
 
 // Since "+" operator doesn't support float values,
@@ -218,14 +224,14 @@ void updateDataStream(float countsPerMinute) {
   }
 
   // Convert from cpm to µSv/h with the pre-defined coefficient
-  float microsievertPerHour = countsPerMinute * conversionCoefficient;
+  float microSievertPerHour = countsPerMinute * conversionCoefficient;
 
   csvData = "";
-  csvData += "CPM,";
+  csvData += "0,";
   appendFloatValueAsString(csvData, countsPerMinute);
   csvData += "\n";
-  csvData += "µSv-h,";
-  appendFloatValueAsString(csvData, microsievertPerHour);
+  csvData += "1,";
+  appendFloatValueAsString(csvData, microSievertPerHour);
 
   Serial.println(csvData);
 
